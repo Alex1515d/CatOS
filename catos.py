@@ -2,6 +2,7 @@ import datetime
 import time
 import random
 
+
 # print("Creating Files...")
 # time.sleep(0.5)
 # print("Loading: testfile")
@@ -15,8 +16,17 @@ import random
 # print("Creating CathM")
 # print("Getting stdio.catc")
 
+GREEN = "\033[32m"
+RESET = "\033[0m"
 
+print("\n\n\n")
 bcioslog = []
+
+keyc = []
+for i in range(5):
+    keyc.append(random.choice(["A", "B", "C", "D", "E", "F", "0", "1", "2", "3", "4", "5", "6"]))
+key = "".join(keyc)
+print(f"BCIOS KEY: '{key}'")
 
 files = {
     "testfile" : {
@@ -60,6 +70,7 @@ sysfilenames = ["usr.conf", "users.conf", "passwords.conf", "stdio.catc"]
 recovery = False
 packnames_none = ["devtools"]
 packnames = []
+libs_unpacked = []
 
 print(
     r"""
@@ -113,19 +124,22 @@ def hashanimation(wait):
     time.sleep(wait)
     print("\r[###################-] 95%", end="", flush=True)
     time.sleep(wait)
-    print("\r[####################] 100%", end="", flush=True)
+    print("\r[####################] 100%")
     time.sleep(wait)
 
+custom = 2
 
+bciosmode = False
 print("CatoSoft CatOS [Version 0.1 Indev]")
 print("(c) CatoSoft Corporation. All rights reserved.")
 bcioslog.append(files.get("usr.conf")["content"])
 ignore = False
 
 while True:
-    while not recovery:
+    while not recovery or not bciosmode:
         bcioslog.append("Syscall [Return] \n")
         try:
+            custom = custom
             rawuser = files.get("usr.conf")["content"]
             # Strip \0 and extra whitespace so user['name'] is cleanly "root0", "user", or "guest"
             clean_user = rawuser.replace(r"\0", "").strip()
@@ -146,7 +160,11 @@ while True:
             print("\n\n\n")
             recovery = True
             break
-        inp = str(input(f"/Users/{user['privilege']}~$ "))
+
+        if custom == 1:
+            inp = str(input(f"/Users/{user['privilege']}~$ "))
+        elif custom == 2:
+            inp = str(input(f"┌─~/Users/{user['privilege']} \n└──$"))
 
         if inp.startswith("sudo"):
             bcioslog.append("Syscal [sudo] \n")
@@ -189,6 +207,19 @@ while True:
                     files[newfilename] = { "content" : "", "devisibility" : True}
             else: print("[CatError 003] You do not have permission to create files.")
 
+        elif inp == "date":
+            print(datetime.datetime.now())
+
+        elif inp == "randint":
+            print(random.randint(1, 1000000))
+
+        elif inp.startswith("color"):
+            parts = inp.split()
+            if parts[1] == "g":
+                print(f"{GREEN}G") 
+            elif parts[1] == "reset":
+                print(f"{RESET}reset")
+
         elif inp.startswith("cat"):
             if files.get("usr.conf")["content"] != r"guest@guest \0" or ignore == True:
                 targetfile = inp[4:].strip()
@@ -206,7 +237,7 @@ while True:
 
         elif inp == "ls" or inp == "list" or inp.startswith("ls") or inp.startswith("list"):
             print("Files in current directory:")
-            if inp.endswith("-dev") or inp.endswith("-d"):
+            if (inp.endswith("-dev") or inp.endswith("-d")) and "devtools.so" in files:
                 for file in files:
                     print(file)
                 flag = "dev"
@@ -215,6 +246,8 @@ while True:
                 for file, data in files.items():
                     if data.get("devisibility", True):
                         print(file)
+                    else:
+                        continue
 
             bcioslog.append(f"Syscall  [ls {flag}]" if flag == "dev" else "Syscall [ls]")
 
@@ -368,6 +401,16 @@ while True:
                         packnames.append(packname)
                         files[f"{packname}.pack"] = {"content": packname, "devisibility": False}
                         bcioslog.append(f"Syscall [cot install {packname}] - Success")
+
+                        if havetounpack:
+                            libname = packname 
+                            print(f"{packname}.pack file installed and ready to unpack...")
+                            hashanimation(random.randint(1, 3) / 10)
+                            time.sleep(1)
+                            libs_unpacked.append(libname)
+                            packnames.remove(libname)
+                            files[f"{libname}.so"] = {"contents" : f"/lib.so, {libname}_active = True"}
+
                     else:
                         print(f"[CatError -005] Package '{packname}' not found or already installed.")
 
@@ -388,6 +431,29 @@ while True:
                         print(f"Unpacking {libname}.pack ...")
                         hashanimation(0.1)
                         print("Unpacking complete. \nFinishing setup...")
+                        libs_unpacked.append(libname)
+                        packnames.remove(libname)
+                        files[f"{libname}.so"] = {"contents" : f"/lib.so, {libname}_active = True"}
+
+        elif inp == "bcios":
+            print("Entering BCIOS/UEFI Configuration Mode...")            
+            key_inp = input("Enter BCIOS key>")
+            if key_inp == key:
+                print("Key correct. \n")
+                bciosmode = True
+                time.sleep(0.4)
+                break
+            else:
+                print("Incorrect key. \n")
+                continue 
+
+        elif inp.startswith("custom"):
+            parts = inp.split()
+            customnew = parts[1]
+            if (inp.endswith("-d") or inp.endswith("-dev")) and "devtools" in libs_unpacked:
+                print(customnew)
+            custom = int(customnew)
+            continue
 
         elif inp == "123":
             print("123")
@@ -403,7 +469,9 @@ while True:
 
         elif inp == "license":
             print("CatoSoft CatOS [Version 0.2 Indev]")
-            print("CatoSoft CathM [Version 0.1 Compat]")
+            print("CatoSoft CathM [Version 0.2 Compat]")
+            print("CatoSoft Cotool [Version 0.1 Compat]")
+            print("")
             print("(c) CatoSoft Corporation. All rights reserved.")
             print("Cats General Public License - CGPL")
             print("You can run, share and modify CatOS freely, yet we want to be credited for it.")
@@ -425,55 +493,85 @@ while True:
             print(f"[CatError 000] The command {inp} isnt a valid command.")
             continue
 
-    input()
-    print("BCIOS/UEFI Recovery mode")
-    print("")
-    print("1 - View BCIOS log")
-    print("2 - Restart CatOS")
-    print("3 - Advanced Reconfiguration of .conf files.")
-    print("4 - Writing files manually (coming soon)")
-    while recovery:
-        inp = input("BIOS>").strip()
-        if inp == "1":
-            print(f"BCIOS Log: ")
-            time.sleep(0.4)
-            print(f"Searching... {len(bcioslog)} notes.")
-            for part in bcioslog:
-                print(part.removesuffix('\n'))
-                time.sleep(random.randint(1, 2) / 10)
-
-        elif inp == "2":
-            choice = input("Are you sure, ALL YOUR DATA WILL BE LOST (y/n):")
-
-            if choice == "n":
-                print("Cancelling CatOS restart...")
-                time.sleep(0.1)
-                continue
-            elif choice == "y":
-                print("Restarting CatOS...")
-                time.sleep(2)
-                print("This might take a while...")
-                time.sleep(5)
-                recovery = False
+    if bciosmode == True:
+        input()
+        print("BCIOS/UEFI Configuration Mode")
+        print("")
+        print("0 - Exit BCIOS Mode")
+        print("1 - View BCIOS log")
+        print("2 - Restart CatOS")
+        print("3 - Writing Files manually.")
+        while bciosmode:
+            inp = input("BCIOS>").strip()
+            
+            if inp == "0":
+                print("Exiting BCIOS...") 
+                time.sleep(0.4)
+                print("Booting CatOS.")
+                time.sleep(0.4)
+                bciosmode = False
                 break
-            else:
-                print("Please enter 'y' or 'n'.")
+            elif inp == "1":
+                print("BCIOS Log: ")
+                time.sleep(0.4)
+                print(f"Searching... {len(bcioslog)} notes. \n")
+                for part in bcioslog:
+                    print(part.removesuffix('\n'))
+                    time.sleep(random.randint(1, 2) / 10)
+            elif inp == "2":
+                print("")
 
-        elif inp == "3":
-            print("Troubleshooting...")
-            time.sleep(1)
-            try:
-                print("usr.conf misconfigured: ", files.get("usr.conf")[content])
-            except Exception:
-                continue
+    
+    if recovery == True and bciosmode == False:
+        input()
+        print("BCIOS/UEFI Recovery mode")
+        print("")
+        print("1 - View BCIOS log")
+        print("2 - Restart CatOS")
+        print("3 - Advanced Reconfiguration of .conf files.")
+        print("4 - Writing files manually (coming soon)")
+        while recovery:
+            inp = input("BIOS>").strip()
+            if inp == "1":
+                print(f"BCIOS Log: ")
+                time.sleep(0.4)
+                print(f"Searching... {len(bcioslog)} notes.")
+                for part in bcioslog:
+                    print(part.removesuffix('\n'))
+                    time.sleep(random.randint(1, 2) / 10)
 
-            try:
-                files["usr.conf"]["content"] = r"restoredacc@user \0"
-                time.sleep(2)
-            except Exception:
-                files["usr.conf"] = {"content" : r"restoredacc@user \0"}
-                time.sleep(3)
-            recovery = False
+            elif inp == "2":
+                choice = input("Are you sure, ALL YOUR DATA WILL BE LOST (y/n):")
 
-        elif inp == "4":
-            print("Manual File Editing in BCIOS is not avaivable yet.")
+                if choice == "n":
+                    print("Cancelling CatOS restart...")
+                    time.sleep(0.1)
+                    continue
+                elif choice == "y":
+                    print("Restarting CatOS...")
+                    time.sleep(2)
+                    print("This might take a while...")
+                    time.sleep(5)
+                    recovery = False
+                    break
+                else:
+                    print("Please enter 'y' or 'n'.")
+
+            elif inp == "3":
+                print("Troubleshooting...")
+                time.sleep(1)
+                try:
+                    print("usr.conf misconfigured: ", files.get("usr.conf")["content"])
+                except Exception:
+                    continue
+
+                try:
+                    files["usr.conf"]["content"] = r"restoredacc@user \0"
+                    time.sleep(2)
+                except Exception:
+                    files["usr.conf"] = {"content" : r"restoredacc@user \0"}
+                    time.sleep(3)
+                recovery = False
+
+            elif inp == "4":
+                print("Manual File Editing in BCIOS is not avaivable yet.")
