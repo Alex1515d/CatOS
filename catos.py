@@ -20,10 +20,12 @@ bcioslog = []
 
 files = {
     "testfile" : {
-        "content" : "AGRRRRRRRRRRRRRRRRRRRRRRRRRRR dinosavr"
+        "content" : "AGRRRRRRRRRRRRRRRRRRRRRRRRRRR dinosavr",
+        "devisibility" : True
     },
     "usr.conf" : {
-        "content" : r"Cat@root0 \0"
+        "content" : r"Cat@root0 \0",
+        "devisibility" : True
     },
     "users.conf" : {
         "content" : {
@@ -31,16 +33,19 @@ files = {
             "Administrator" : "root0",
             "guest" : "guest"
 
-        }
+        },
+        "devisibility" : True
     },
     "passwords.conf" : {
         "content" : {
             "Cat" : "123",
             "Administrator" : "password"
-        }
+        },
+        "devisibility" : True
     },
     "stdio.catc" : {
-        "content" : "library for future CathM"
+        "content" : "library for future CathM",
+        "devisibility" : True
     }
 }
 bcioslog.append("Booted CatOS files. \n")
@@ -53,6 +58,8 @@ sysfilenames = ["usr.conf", "users.conf", "passwords.conf", "stdio.catc"]
 #         self.content = content
 
 recovery = False
+packnames_none = ["devtools"]
+packnames = []
 
 print(
     r"""
@@ -63,9 +70,56 @@ print(
  \____\__,_|\__\___/|____/ \___|_|  \__|
 """
 )
+
+
+def hashanimation(wait):
+    print("\r[--------------------] 0%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[#-------------------] 5%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[##------------------] 10%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[###-----------------] 15%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[####----------------] 20%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[#####---------------] 25%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[######--------------] 30%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[#######-------------] 35%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[########------------] 40%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[#########-----------] 45%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[##########----------] 50%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[###########---------] 55%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[############--------] 60%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[#############-------] 65%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[##############------] 70%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[###############-----] 75%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[################----] 80%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[#################---] 85%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[##################--] 90%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[###################-] 95%", end="", flush=True)
+    time.sleep(wait)
+    print("\r[####################] 100%", end="", flush=True)
+    time.sleep(wait)
+
+
 print("CatoSoft CatOS [Version 0.1 Indev]")
 print("(c) CatoSoft Corporation. All rights reserved.")
-bcioslog.append("User: ", files.get("usr.conf")["content"])
+bcioslog.append(files.get("usr.conf")["content"])
 ignore = False
 
 while True:
@@ -112,7 +166,7 @@ while True:
         if inp == "help":
             print("crt filename.txt  -  create a text file")
             print("rm filename.txt  -  remove a file")
-            print("set filename.txt  -  execute a script file")
+            print("run filename.txt  -  execute a script file")
             print("cat filename.txt  -  read the target file")
             print("wr filename.txt  -  edit a files contents")
             print("user  -  prints the active user.")
@@ -132,7 +186,7 @@ while True:
                 elif newfilename in files:
                     print("[CatError 001] The target file already exists.")
                 else:
-                    files[newfilename] = { "content" : "" }
+                    files[newfilename] = { "content" : "", "devisibility" : True}
             else: print("[CatError 003] You do not have permission to create files.")
 
         elif inp.startswith("cat"):
@@ -150,10 +204,19 @@ while True:
                     print(f"[CatError 002] There is no file named {targetfile} in the current directory.")
             else: print(f"[CatError 003] You do not have permission to read files.")
 
-        elif inp == "ls" or inp == "list":
+        elif inp == "ls" or inp == "list" or inp.startswith("ls") or inp.startswith("list"):
             print("Files in current directory:")
-            for file in files:
-                print(file)
+            if inp.endswith("-dev") or inp.endswith("-d"):
+                for file in files:
+                    print(file)
+                flag = "dev"
+            else:
+                flag = None
+                for file, data in files.items():
+                    if data.get("devisibility", True):
+                        print(file)
+
+            bcioslog.append(f"Syscall  [ls {flag}]" if flag == "dev" else "Syscall [ls]")
 
         elif inp.startswith("rm"):
             if files.get("usr.conf")["content"] != r"guest@guest \0" or ignore == True:
@@ -280,6 +343,52 @@ while True:
                                     print("[CatError -006] Incorrect password.")
             else: print("[CatError -001] You must be logged out (guest account) to be able to log in.")
 
+        elif inp.startswith("cot install"):
+            if files.get("usr.conf")["content"] == r"guest@guest \0" and not ignore:
+                print("[CatError 003] You do not have permission to install packages.")
+            else:
+                parts = inp.split()
+                if len(parts) < 3:
+                    print("[CatError 004] Usage: cot install <package_name> [-u]")
+                else:
+                    packname = parts[2]
+                    havetounpack = "-u" in parts
+
+                    if packname in packnames_none:
+                        time.sleep(1)
+                        print(f"Package found ({packname}). Starting installation...")
+                        time.sleep(1)
+                        print(f"Installing {packname}:")
+                        hashanimation(random.randint(1, 3) / 10)
+                        
+                        print(f"\nInstallation complete. {packname} installed.\nFinishing setup...")
+                        time.sleep(0.3)
+                        
+                        packnames_none.remove(packname)
+                        packnames.append(packname)
+                        files[f"{packname}.pack"] = {"content": packname, "devisibility": False}
+                        bcioslog.append(f"Syscall [cot install {packname}] - Success")
+                    else:
+                        print(f"[CatError -005] Package '{packname}' not found or already installed.")
+
+        elif inp.startswith("cot unpack"):
+            if files.get("usr.conf")["content"] == r"guest@guest \0" and not ignore:
+                print("[CatError 003] You do not have permission to unpack packages.")
+            else:
+                parts = inp.split()
+                if len(parts) < 3:
+                    print("[CatError 004] Usage: cot unpack <installed package name>")
+                else:
+                    libname = parts[2]
+
+                    if libname in packnames:
+                        time.sleep(1)
+                        print(f"Package found ({libname}). Starting unpacking...")
+                        time.sleep(1)
+                        print(f"Unpacking {libname}.pack ...")
+                        hashanimation(0.1)
+                        print("Unpacking complete. \nFinishing setup...")
+
         elif inp == "123":
             print("123")
             ignore = True
@@ -293,7 +402,7 @@ while True:
                 print("\n")
 
         elif inp == "license":
-            print("CatoSoft CatOS [Version 0.1 Indev]")
+            print("CatoSoft CatOS [Version 0.2 Indev]")
             print("CatoSoft CathM [Version 0.1 Compat]")
             print("(c) CatoSoft Corporation. All rights reserved.")
             print("Cats General Public License - CGPL")
@@ -322,6 +431,7 @@ while True:
     print("1 - View BCIOS log")
     print("2 - Restart CatOS")
     print("3 - Advanced Reconfiguration of .conf files.")
+    print("4 - Writing files manually (coming soon)")
     while recovery:
         inp = input("BIOS>").strip()
         if inp == "1":
@@ -358,9 +468,12 @@ while True:
                 continue
 
             try:
-                files["usr.conf"][content] = r"restoredacc@user \0"
+                files["usr.conf"]["content"] = r"restoredacc@user \0"
                 time.sleep(2)
             except Exception:
                 files["usr.conf"] = {"content" : r"restoredacc@user \0"}
                 time.sleep(3)
             recovery = False
+
+        elif inp == "4":
+            print("Manual File Editing in BCIOS is not avaivable yet.")

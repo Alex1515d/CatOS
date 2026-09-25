@@ -61,6 +61,28 @@ A command to log in to another user account, can be only done if current account
 After you type that command CatOS will ask for the password. 
 All the passwords are stored in passwords.conf
 
+# cot install <package>
+cot install <package>
+A command to install a .pack file. 
+Can be unpacked into an .so file using cot unpack <installed .pack file>
+Tip:
+use the -u flag at the end to unpack the .pack file automatically after installation
+
+# custom
+a command to customize your terminal.
+use 
+custom <1 / 2>
+1 - Default
+2 - Modern
+
+# date
+a command to get the current date and time
+
+# color
+a command to change the Terminal color:
+g - green
+reset - white
+
 # license
 license
 
